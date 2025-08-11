@@ -1,10 +1,9 @@
 from fastapi import FastAPI ,Depends , status , Response , HTTPException
-from . import schemas , models
+from . import schemas , models, hashing
 from typing import List  
 from .database import engine, SessionLocal
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
-
+from .hashing import Hash
 
 
 
@@ -41,9 +40,9 @@ def create(request: schemas.Blog, db: Session= Depends(get_db)):
 
 @app.delete('/blog/{id}', status_code=204)
 def destroy(id:int , db:Session = Depends(get_db)):
-  blog = db.query(models.Blog).filter(models.Blog.id ==id)
-  if not blog.first():
-    return {"status":404, "message": f"No Blog found of id {id}"}
+  blog = db.query(models.Blog).filter(models.Blog.id ==id).first()
+  if not blog:
+    raise HTTPException(status_code=404, detail=f"Blog with id {id} doesn't exist")
   blog.delete(synchronize_session=False)
   db.commit()
   return {"message": f"blog with id {id} is deleted successfully..."}
@@ -85,21 +84,86 @@ def show(id: int, db: Session = Depends(get_db)):
 
 
 #! password hashing
-pwd_cxt = CryptContext(schemes=["bcrypt"] , deprecated="auto")
+
 # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 @app.post('/user')
 def create_user(request: schemas.User , db : Session = Depends(get_db)):
-  hassedPassword = pwd_cxt.hash(request.password)
   new_User = models.User(name = request.name, 
                          email = request.email,
-                         password = hassedPassword)
+                         password = Hash.bcrypt(request.password))
   
   db.add(new_User)
   db.commit()
   db.refresh(new_User)
   return new_User
+
+
+@app.get('/user/{id}', status_code=200, response_model=schemas.ShowUser)
+def get_user(id : int , db: Session= Depends(get_db)):
+  user = db.query(models.User).filter(models.User.id == id).first()
+  if not user:
+    raise HTTPException(
+            status_code=404,
+            detail=f"User {id} not found"
+        ) 
+  return user
+
+
+@app.get("/allUser" , status_code=200, response_model=List[schemas.ShowUser])
+def show_all_user(db:Session = Depends(get_db)):
+  all_users = db.query(models.User).all()
+  return all_users
+
+@app.delete("/user/{id}")
+def del_user(id: int, db: Session = Depends(get_db)):
+  current_user = db.query(models.User).filter(models.User.id == id).first()
+  if not current_user:
+    raise HTTPException(status_code=404, detail=f"User with id {id} doesn't exist")
+  db.delete(current_user)
+  db.commit()
+  return {"User Deleted..."}
    
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   # if request.published:
   #   return {f"Blog:{request.title} has {request.likes} likes and total {request.Totalcomments} comments are now published"}
