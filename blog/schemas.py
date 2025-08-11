@@ -1,31 +1,37 @@
 from pydantic import BaseModel
-from typing import Optional
-
-class Blog(BaseModel):
-  title: Optional[str] = None
-  body : Optional[str] = None
-  likes : Optional[int] = None
-  totalComments : Optional[int] = None
+from typing import List
 
 
-class ShowBlog(Blog):
-  title: Optional[str] = None
-  body : Optional[str] = None
-  # likes : Optional[int] = None
-  # totalComments : Optional[int] = None
-
-  class Config():
-    orm_mode = True
 
 class User(BaseModel):
   name: str
   email: str
   password: str
+
+class BlogBase(BaseModel):
+  title: str
+  body : str
+
+class Blog(BlogBase):
+  class Config():
+    orm_mode = True
+
+
   
 class ShowUser(BaseModel):
   name: str
   email: str
+  blogs : List[Blog] =[]
 
+  class Config():
+    orm_mode = True
+
+
+class ShowBlog(Blog):
+  title: str
+  body : str
+  creator: ShowUser
+  
   class Config():
     orm_mode = True
 
