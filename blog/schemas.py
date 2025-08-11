@@ -2,8 +2,22 @@ from pydantic import BaseModel
 from typing import Optional
 
 class Blog(BaseModel):
-  title: str
-  body : str
-  likes : int
-  totalComments : int
-  # published: Optional[bool]= False
+  title: Optional[str] = None
+  body : Optional[str] = None
+  likes : Optional[int] = None
+  totalComments : Optional[int] = None
+
+
+class ShowBlog(Blog):
+  title: Optional[str] = None
+  body : Optional[str] = None
+  # likes : Optional[int] = None
+  # totalComments : Optional[int] = None
+
+  class Config():
+    orm_mode = True
+
+class User(BaseModel):
+  name: str
+  email: str
+  password: str
