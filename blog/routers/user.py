@@ -1,48 +1,31 @@
 from fastapi import APIRouter, Depends,HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from .. import database, models, schemas , hashing
+from .. import database, models, schemas 
+from ..repository import userRepo
 
-router = APIRouter()
+router = APIRouter(
+  prefix="/user",
+  tags=["users"]
+)
 
 get_db = database.get_db
 
 
 
-@router.post('/user', tags=["user"])
+@router.post('/')
 def create_user(request: schemas.User , db : Session = Depends(get_db)):
-  new_User = models.User(name = request.name, 
-                         email = request.email,
-                         password = hashing.Hash.bcrypt(request.password))
-  
-  db.add(new_User)
-  db.commit()
-  db.refresh(new_User)
-  return new_User
+  return userRepo.create(request,db)
 
-
-@router.get('/user/{id}', status_code=200, response_model=schemas.ShowUser, tags=["user"])
+@router.get('/{id}', status_code=200, response_model=schemas.ShowUser)
 def get_user(id : int , db: Session= Depends(get_db)):
-  user = db.query(models.User).filter(models.User.id == id).first()
-  if not user:
-    raise HTTPException(
-            status_code=404,
-            detail=f"User {id} not found"
-        ) 
-  return user
+  return userRepo.user(id, db) 
 
-
-@router.get("/allUser" , status_code=200, response_model=List[schemas.ShowUser], tags=["user"])
+@router.get("/" , status_code=200, response_model=List[schemas.ShowUser])
 def show_all_user(db:Session = Depends(get_db)):
-  all_users = db.query(models.User).all()
-  return all_users
+  return userRepo.all_users(db)
 
-@router.delete("/user/{id}", tags=["user"])
+@router.delete("/{id}")
 def del_user(id: int, db: Session = Depends(get_db)):
-  current_user = db.query(models.User).filter(models.User.id == id).first()
-  if not current_user:
-    raise HTTPException(status_code=404, detail=f"User with id {id} doesn't exist")
-  db.delete(current_user)
-  db.commit()
-  return {"User Deleted..."}
+  return userRepo.destroy(id, db)
    

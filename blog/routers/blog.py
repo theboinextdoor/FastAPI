@@ -2,58 +2,29 @@ from fastapi import APIRouter, Depends, status ,HTTPException
 from sqlalchemy.orm import Session
 from .. import schemas , models , database
 from typing import List
+from ..repository import blogRepo
 
-router = APIRouter()
+router = APIRouter(tags=['blogs'],prefix="/blog")
 get_db = database.get_db
 
-@router.post('/blog' , status_code=status.HTTP_201_CREATED , tags=["blogs"])
-def create(request: schemas.Blog, db: Session= Depends(get_db)):
-  new_blog = models.Blog(title = request.title,
-                         body = request.body,
-                         user_id = 1
-                         )
-  db.add(new_blog)
-  db.commit()
-  db.refresh(new_blog)
-  return {new_blog}
+@router.post('/' , status_code=status.HTTP_201_CREATED )
+def create(request:schemas.Blog, db:Session=Depends(get_db)):
+  return blogRepo.create(request,db)
 
 
-@router.delete('/blog/{id}', status_code=204, tags=["blogs"])
+@router.delete('/{id}', status_code=204)
 def destroy(id:int , db:Session = Depends(get_db)):
-  blog = db.query(models.Blog).filter(models.Blog.id ==id).first()
-  if not blog:
-    raise HTTPException(status_code=404, detail=f"Blog with id {id} doesn't exist")
-  blog.delete(synchronize_session=False)
-  db.commit()
-  return {"message": f"blog with id {id} is deleted successfully..."}
+  return blogRepo.destroy(id,db)
 
-@router.put("/blog/{id}", tags=["blogs"])
+@router.put("/{id}")
 def update(id: int, request: schemas.Blog, db: Session = Depends(get_db)):
-    blog = db.query(models.Blog).filter(models.Blog.id == id).first()
-    if not blog:
-        return {"message": f"No blog of id:{id} found", "status": 404}
-    
-    update_data = request.dict(exclude_unset=True)  # only fields sent in request
-    for key, value in update_data.items():
-        setattr(blog, key, value)
-    
-    db.commit()
-    return {"message": "Updated Successfully"}
+   return blogRepo.update(id, request,db)
 
-@router.get('/blog' ,response_model=List[schemas.ShowBlog], tags=["blogs"] )
+@router.get('/' ,response_model=List[schemas.ShowBlog] )
 def all(db : Session= Depends(get_db)):
-  blogs = db.query(models.Blog).all();  
-  return blogs 
+  return blogRepo.getall(db)
 
-
-
-@router.get('/blog/{id}', response_model=schemas.ShowBlog, tags=["blogs"])
+@router.get('/{id}', response_model=schemas.ShowBlog)
 def show(id: int, db: Session = Depends(get_db)):
-    blog = db.query(models.Blog).filter(models.Blog.id == id).first()
-    if not blog:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Blog of id {id} is not found"
-        )
-    return blog
+    return blogRepo.blog_by_id(id, db)
 
