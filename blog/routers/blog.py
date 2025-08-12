@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status ,HTTPException
 from sqlalchemy.orm import Session
-from .. import schemas , models , database
+from .. import schemas  , database
 from typing import List
 from ..repository import blogRepo
 
